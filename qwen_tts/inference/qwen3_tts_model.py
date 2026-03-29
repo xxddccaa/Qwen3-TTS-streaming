@@ -824,6 +824,105 @@ class Qwen3TTSModel:
             yield chunk, sr
 
     @torch.inference_mode()
+    def stream_generate_custom_voice(
+        self,
+        text: str,
+        speaker: str,
+        language: str = None,
+        instruct: Optional[str] = None,
+        non_streaming_mode: bool = False,
+        # Streaming control (same interface as stream_generate_voice_clone)
+        emit_every_frames: int = 8,
+        decode_window_frames: int = 80,
+        overlap_samples: int = 512,
+        max_frames: int = 10000,
+        use_optimized_decode: bool = True,
+        first_chunk_emit_every: int = 0,
+        first_chunk_decode_window: int = 48,
+        first_chunk_frames: int = 48,
+        repetition_penalty_window: int = 100,
+        repetition_penalty: float = 1.0,
+        **kwargs,
+    ) -> Generator[Tuple[np.ndarray, int], None, None]:
+        """Stream speech generation for the CustomVoice model, yielding PCM chunks.
+
+        Wraps the low-level stream_generate_pcm with a speaker-name-based interface.
+        Only supports single-text generation (no batching).
+
+        Args:
+            text: Text to synthesize (single string).
+            speaker: Speaker name (must be in get_supported_speakers()).
+            language: Language tag; defaults to "Auto".
+            instruct: Optional style instruction. Ignored for 0.6B models.
+            non_streaming_mode: Use non-streaming text input mode.
+            emit_every_frames: Emit a PCM chunk every N codec frames.
+            decode_window_frames: Decoder window size (longer = better quality, more latency).
+            overlap_samples: Crossfade overlap between consecutive chunks.
+            max_frames: Hard cap on generated codec frames to prevent runaway generation.
+            use_optimized_decode: Use CUDA-graph-optimised decode when available.
+            first_chunk_emit_every: Emit interval for the first-chunk phase (0 = disabled).
+            first_chunk_decode_window: Decoder window for the first-chunk phase.
+            first_chunk_frames: Switch to stable settings after this many frames.
+            repetition_penalty_window: Penalty window size (0 = unlimited).
+            repetition_penalty: Repetition penalty factor (1.0 = disabled).
+
+        Yields:
+            Tuple[np.ndarray, int]: (pcm_chunk as float32, sample_rate)
+        """
+        if self.model.tts_model_type != "custom_voice":
+            raise ValueError(
+                f"model with tts_model_type={self.model.tts_model_type} "
+                "does not support stream_generate_custom_voice"
+            )
+
+        if isinstance(text, list):
+            raise ValueError("stream_generate_custom_voice only supports single text, not batch")
+
+        texts = [text]
+        languages = [language if language is not None else "Auto"]
+        self._validate_languages(languages)
+        speakers = [speaker]
+        self._validate_speakers(speakers)
+
+        # 0.6B model does not support instruct
+        if self.model.tts_model_size in "0b6":
+            instruct = None
+
+        if instruct is not None and instruct != "":
+            instruct_ids = [self._tokenize_texts([self._build_instruct_text(instruct)])[0]]
+        else:
+            instruct_ids = [None]
+
+        input_ids = self._tokenize_texts([self._build_assistant_text(t) for t in texts])
+
+        gen_kwargs = self._merge_generate_kwargs(**kwargs)
+        supported_params = {
+            "do_sample", "top_k", "top_p", "temperature",
+            "subtalker_dosample", "subtalker_top_k", "subtalker_top_p", "subtalker_temperature",
+        }
+        gen_kwargs = {k: v for k, v in gen_kwargs.items() if k in supported_params}
+
+        for chunk, sr in self.model.stream_generate_pcm(
+            input_ids=input_ids,
+            instruct_ids=instruct_ids,
+            languages=languages,
+            speakers=speakers,
+            non_streaming_mode=non_streaming_mode,
+            emit_every_frames=emit_every_frames,
+            decode_window_frames=decode_window_frames,
+            overlap_samples=overlap_samples,
+            max_frames=max_frames,
+            use_optimized_decode=use_optimized_decode,
+            first_chunk_emit_every=first_chunk_emit_every,
+            first_chunk_decode_window=first_chunk_decode_window,
+            first_chunk_frames=first_chunk_frames,
+            repetition_penalty=repetition_penalty,
+            repetition_penalty_window=repetition_penalty_window,
+            **gen_kwargs,
+        ):
+            yield chunk, sr
+
+    @torch.inference_mode()
     def batch_stream_generate_voice_clone(
         self,
         text: List[str],

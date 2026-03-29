@@ -1,0 +1,11 @@
+.git
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+qwen3_tts_test_voice_clone_output_wav
+.venv
+venv
+*.wav

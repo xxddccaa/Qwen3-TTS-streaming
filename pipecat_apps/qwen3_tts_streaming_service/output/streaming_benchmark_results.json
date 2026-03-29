@@ -1,0 +1,42 @@
+{
+  "websocket_url": "ws://127.0.0.1:8000/v1/tts/stream",
+  "used_service_default_prompt": true,
+  "warmup_rounds": 0,
+  "ttft_only": false,
+  "results": [
+    {
+      "case_id": "zh_cn_chat",
+      "language": "Chinese",
+      "output_wav_path": "/data/xiedong/Qwen3-TTS-streaming/pipecat_apps/qwen3_tts_streaming_service/output/zh_cn_streaming_example.wav",
+      "request_text": "你好，这是一个中文流式语音测试。我们正在验证首包延迟、连续音频分块，以及最终音频是否适合实时对话场景。Hello, this is an English streaming TTS test. ",
+      "sample_rate": 24000,
+      "channels": 1,
+      "encoding": "pcm_s16le",
+      "transport": "binary",
+      "stream_start_latency_ms": 17.32496591284871,
+      "first_chunk_meta_latency_ms": 730.1801708526909,
+      "first_audio_byte_latency_ms": 730.2051819860935,
+      "total_latency_ms": 20200.24883095175,
+      "chunk_count": 26,
+      "audio_bytes": 668416,
+      "audio_duration_ms": 13925.333333333332
+    },
+    {
+      "case_id": "en_chat",
+      "language": "English",
+      "output_wav_path": "/data/xiedong/Qwen3-TTS-streaming/pipecat_apps/qwen3_tts_streaming_service/output/en_streaming_example.wav",
+      "request_text": "Hello, this is an English streaming TTS test. We are measuring first audio latency and checking whether the chunks arrive continuously for real time voice chat.",
+      "sample_rate": 24000,
+      "channels": 1,
+      "encoding": "pcm_s16le",
+      "transport": "binary",
+      "stream_start_latency_ms": 7.982901064679027,
+      "first_chunk_meta_latency_ms": 774.14456801489,
+      "first_audio_byte_latency_ms": 774.2011770606041,
+      "total_latency_ms": 18869.13109291345,
+      "chunk_count": 23,
+      "audio_bytes": 557312,
+      "audio_duration_ms": 11610.666666666666
+    }
+  ]
+}
